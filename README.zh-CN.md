@@ -2,7 +2,7 @@
 
 **从 Codex 日志里找出重复执行、失败调用和过大的工具输出**
 
-[在线体验](https://chenpingan-dev.github.io/agent-rewind/) · [English](README.md)
+[打开会话复盘](https://chenpingan-dev.github.io/agent-rewind/) · [English](README.md)
 
 ![执行回放](assets/screenshot.png)
 

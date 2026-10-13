@@ -1,4 +1,4 @@
-name: Deploy interactive demo
+name: Publish session replay
 on:
   push:
     branches: [main]

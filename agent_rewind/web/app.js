@@ -21,7 +21,7 @@
       exportJson: "导出 JSON ↗",
       recordedOnly: "只回放已记录的步骤",
       copy: "复制内容",
-      synthetic: "合成示例",
+      synthetic: "合成数据",
       imported: "导入报告",
       toolCalls: "工具调用",
       failedCalls: "失败调用",
@@ -76,7 +76,7 @@
       source: "Codex JSONL",
       tokenUnknown: "日志未提供用量",
       timingUnknown: "原始日志未记录时间戳",
-      compareSample: "合成示例的运行差异",
+      compareSample: "内置记录的运行差异",
     },
     en: {
       offline: "Offline report",
@@ -98,7 +98,7 @@
       exportJson: "Export JSON ↗",
       recordedOnly: "Replay recorded steps only",
       copy: "Copy content",
-      synthetic: "Synthetic demo",
+      synthetic: "Synthetic data",
       imported: "Imported report",
       toolCalls: "Tool calls",
       failedCalls: "Failed calls",
@@ -155,7 +155,7 @@
       source: "Codex JSONL",
       tokenUnknown: "Usage was not recorded",
       timingUnknown: "The original log has no timestamps",
-      compareSample: "Run differences in a synthetic demo",
+      compareSample: "Run differences in the built-in recording",
     },
   };
   let locale = "zh";

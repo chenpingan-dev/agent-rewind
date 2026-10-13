@@ -2,14 +2,16 @@
 
 **Find where an AI coding session got stuck — from an explicit Codex JSONL log**
 
-[Live replay](https://chenpingan-dev.github.io/agent-rewind/) · [中文说明](README.zh-CN.md) · [MIT](LICENSE)
+[Open session replay](https://chenpingan-dev.github.io/agent-rewind/) · [中文说明](README.zh-CN.md) · [MIT](LICENSE)
 
 ![CI](https://github.com/chenpingan-dev/agent-rewind/actions/workflows/ci.yml/badge.svg)
 ![Agent Rewind replay](assets/screenshot.png)
 
 Three identical test runs, a broad search dumping pages of output, then the actual fix. Agent Rewind turns these recorded steps into a searchable timeline and links each diagnostic to its source lines. Compare a second run to see the recorded difference in calls, failures and token usage.
 
-## Try it in one minute
+<a id="try-it-in-one-minute"></a>
+
+## Replay a session
 
 Python 3.11+; analysis uses only the standard library. No model API key or server.
 
@@ -20,7 +22,7 @@ python -m pip install .
 agent-rewind examples/repeated-run.jsonl --compare examples/focused-run.jsonl --html replay.html --json report.json
 ```
 
-Open `replay.html` in your browser. Replay does **not** execute recorded commands. The included examples and live demo are labeled synthetic.
+Open `replay.html` in your browser. Replay does **not** execute recorded commands. The included recordings and online workspace are labeled as synthetic data.
 
 To record your own explicitly chosen session:
 
@@ -55,7 +57,7 @@ python -m unittest discover -s tests -v
 python scripts/build_demo.py
 ```
 
-The demo builder analyzes two synthetic fixtures with the same parser used by the CLI. `build/index.html` is deployed as a static GitHub Pages site. The package includes the UI assets; generated reports also work away from the repository.
+The workspace builder analyzes two synthetic fixtures with the same parser used by the CLI. `build/index.html` is deployed as a static GitHub Pages site. The package includes the UI assets; generated reports also work away from the repository.
 
 [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md)
 
