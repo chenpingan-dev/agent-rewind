@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-rewind"
+version = "0.1.0"
+description = "Offline replay and evidence-based diagnostics for Codex JSONL exports"
+requires-python = ">=3.11"
+license = "MIT"
+readme = "README.md"
+
+[project.scripts]
+agent-rewind = "agent_rewind.__main__:main"
+
+[tool.setuptools.package-data]
+agent_rewind = ["web/*.html", "web/*.css", "web/*.js"]
+
+[tool.setuptools.packages.find]
+include = ["agent_rewind*"]

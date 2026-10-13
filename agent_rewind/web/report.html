@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Replay Codex sessions, inspect repeated calls and compare runs offline"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; object-src 'none'"
+    />
+    <title>Agent Rewind · 会话复盘</title>
+    <style>
+      __STYLE__
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a
+        class="brand"
+        href="https://github.com/chenpingan-dev/agent-rewind"
+        target="_blank"
+        rel="noreferrer"
+        ><span class="brand-icon">↶</span> Agent Rewind
+        <span class="version">v0.1</span></a
+      >
+      <div class="top-actions">
+        <span class="local-label"><i></i><span data-i18n="offline"></span></span
+        ><button id="language" class="quiet">English</button
+        ><a
+          class="source-link"
+          href="https://github.com/chenpingan-dev/agent-rewind#readme"
+          target="_blank"
+          rel="noreferrer"
+          >GitHub ↗</a
+        >
+      </div>
+    </header>
+    <main>
+      <div class="page-heading">
+        <div>
+          <div class="eyebrow">SESSION INTELLIGENCE</div>
+          <h1 data-i18n="heading"></h1>
+          <p data-i18n="subtitle"></p>
+        </div>
+        <div class="file-actions">
+          <button id="import" class="secondary" data-i18n="import"></button
+          ><button id="export" class="primary" data-i18n="export"></button
+          ><input
+            id="file"
+            type="file"
+            accept=".json,application/json"
+            hidden
+          />
+        </div>
+      </div>
+      <section class="session-bar">
+        <div>
+          <span id="sample-badge" class="pill"></span
+          ><strong id="session-title"></strong
+          ><span id="source-label" class="muted"></span>
+        </div>
+        <div class="session-switch">
+          <button id="original" class="active" data-i18n="original"></button
+          ><button id="revised" data-i18n="revised"></button>
+        </div>
+      </section>
+      <section
+        class="metrics"
+        id="metrics"
+        aria-label="Session summary"
+      ></section>
+      <div class="view-tabs">
+        <button id="replay-tab" class="active" data-i18n="replay"></button
+        ><button id="compare-tab" data-i18n="compare"></button
+        ><span id="report-note"></span>
+      </div>
+      <section id="replay-view" class="workspace">
+        <aside class="event-panel panel">
+          <div class="panel-title">
+            <h2 data-i18n="events"></h2>
+            <span id="event-count" class="count"></span>
+          </div>
+          <div class="search-box">
+            <input id="search" type="search" autocomplete="off" />
+          </div>
+          <div class="filters" id="filters"></div>
+          <div id="event-list" class="event-list"></div>
+          <div id="list-note" class="list-note"></div>
+        </aside>
+        <section class="detail-panel panel">
+          <div class="panel-title">
+            <div class="detail-label">
+              <span id="detail-icon"></span>
+              <h2 id="detail-title"></h2>
+            </div>
+            <span id="detail-status" class="pill"></span>
+          </div>
+          <div id="detail-meta" class="detail-meta"></div>
+          <div id="detail-body" class="detail-body"></div>
+          <div class="player">
+            <div class="player-controls">
+              <button
+                id="previous"
+                class="icon-button"
+                aria-label="Previous step"
+              >
+                ‹</button
+              ><button id="play" class="play-button"></button
+              ><button id="next" class="icon-button" aria-label="Next step">
+                ›</button
+              ><span id="step-label"></span>
+            </div>
+            <input
+              id="scrubber"
+              type="range"
+              min="0"
+              step="1"
+              aria-label="Replay position"
+            />
+            <div class="player-foot">
+              <span data-i18n="recordedOnly"></span
+              ><button id="copy" class="text-button" data-i18n="copy"></button>
+            </div>
+          </div>
+        </section>
+        <aside class="insight-panel">
+          <section class="panel">
+            <div class="panel-title">
+              <h2 data-i18n="findings"></h2>
+              <span id="finding-count" class="count"></span>
+            </div>
+            <div id="finding-list" class="finding-list"></div>
+          </section>
+          <section class="panel token-panel">
+            <div class="panel-title">
+              <h2 data-i18n="ledger"></h2>
+              <span class="pill blue">TOKEN</span>
+            </div>
+            <div id="token-ledger"></div>
+          </section>
+          <section class="local-card">
+            <span class="local-symbol">⌁</span>
+            <div>
+              <strong data-i18n="portable"></strong>
+              <p data-i18n="portableDescription"></p>
+            </div>
+          </section>
+        </aside>
+      </section>
+      <section id="compare-view" class="panel comparison" hidden></section>
+      <footer>
+        <span data-i18n="footer"></span
+        ><button
+          id="json-export"
+          class="text-button"
+          data-i18n="exportJson"
+        ></button>
+      </footer>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script id="report-data" type="application/json">
+      __REPORT__
+    </script>
+    <script>
+      __APP__;
+    </script>
+  </body>
+</html>

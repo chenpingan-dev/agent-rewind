@@ -1,0 +1,660 @@
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const copy = {
+    zh: {
+      offline: "离线报告",
+      heading: "会话复盘",
+      subtitle: "定位重复执行和失败调用，比较两次运行的差异",
+      import: "↑ 导入报告",
+      export: "↓ 保存离线报告",
+      original: "原始运行",
+      revised: "对照运行",
+      replay: "执行回放",
+      compare: "运行对比",
+      events: "执行记录",
+      findings: "值得查看",
+      ledger: "Token 账本",
+      portable: "一份文件，完整复盘",
+      portableDescription: "报告可以离线打开，带着执行记录一起分享",
+      footer: "Agent Rewind · 记录来自导入的日志",
+      exportJson: "导出 JSON ↗",
+      recordedOnly: "只回放已记录的步骤",
+      copy: "复制内容",
+      synthetic: "合成示例",
+      imported: "导入报告",
+      toolCalls: "工具调用",
+      failedCalls: "失败调用",
+      changedFiles: "修改文件",
+      inputTokens: "累计输入 token",
+      all: "全部",
+      tool: "工具",
+      file: "文件",
+      message: "输出",
+      error: "错误",
+      note: "记录",
+      completed: "完成",
+      failed: "失败",
+      in_progress: "执行中",
+      unknown: "未知",
+      empty: "没有匹配的记录",
+      search: "搜索命令、文件或输出",
+      play: "▶ 播放",
+      pause: "Ⅱ 暂停",
+      line: "日志行",
+      step: "步骤",
+      duration: "耗时",
+      input: "调用内容",
+      output: "返回结果",
+      noOutput: "日志没有记录返回内容",
+      noText: "该事件没有记录文本",
+      noFindings: "当前记录没有触发诊断提示",
+      repeated: "相同输入重复执行",
+      repeatedDetail: "共 {count} 次，其中 {failed} 次失败",
+      large: "单次工具输出较大",
+      largeDetail: "原始输出 {bytes}，点击查看对应调用",
+      failedTitle: "调用返回失败",
+      failedDetail: "查看命令、返回内容和退出码",
+      cached: "其中缓存输入",
+      outputTokens: "输出 token",
+      usageNote: "已记录 {known}/{total} 轮用量，未提供的字段显示 —",
+      bytesNote: "输出长度不等于 token 用量",
+      compareTitle: "两次运行，逐项对照",
+      compareSubtitle: "数字来自两份日志，展示已记录的差异",
+      metric: "指标",
+      delta: "变化",
+      noCompare: "需要在命令行使用 --compare，或导入带对照运行的报告",
+      copied: "已复制",
+      copyFailed: "当前浏览器无法复制，请手动选择内容",
+      saved: "离线报告已保存",
+      invalid: "报告格式不正确，请导入 Agent Rewind 生成的 JSON",
+      tooLarge: "报告超过 16 MiB 上限",
+      outputClipped: "仅展示前 16,384 个字符",
+      lineLabel: "行 {first}–{last}",
+      sequence: "序号 {n}",
+      limited: "显示前 300 条匹配记录",
+      source: "Codex JSONL",
+      tokenUnknown: "日志未提供用量",
+      timingUnknown: "原始日志未记录时间戳",
+      compareSample: "合成示例的运行差异",
+    },
+    en: {
+      offline: "Offline report",
+      heading: "Session replay",
+      subtitle: "Find repeated calls, inspect failures and compare runs",
+      import: "↑ Import report",
+      export: "↓ Save offline report",
+      original: "Original run",
+      revised: "Comparison run",
+      replay: "Replay",
+      compare: "Compare runs",
+      events: "Recorded steps",
+      findings: "Worth a look",
+      ledger: "Token ledger",
+      portable: "One file, the full replay",
+      portableDescription:
+        "Open it offline or share it with the recorded steps included",
+      footer: "Agent Rewind · Evidence comes from the imported log",
+      exportJson: "Export JSON ↗",
+      recordedOnly: "Replay recorded steps only",
+      copy: "Copy content",
+      synthetic: "Synthetic demo",
+      imported: "Imported report",
+      toolCalls: "Tool calls",
+      failedCalls: "Failed calls",
+      changedFiles: "Changed files",
+      inputTokens: "Recorded input tokens",
+      all: "All",
+      tool: "Tools",
+      file: "Files",
+      message: "Messages",
+      error: "Errors",
+      note: "Notes",
+      completed: "Completed",
+      failed: "Failed",
+      in_progress: "In progress",
+      unknown: "Unknown",
+      empty: "No matching steps",
+      search: "Search commands, files or output",
+      play: "▶ Play",
+      pause: "Ⅱ Pause",
+      line: "Log lines",
+      step: "Step",
+      duration: "Duration",
+      input: "Call input",
+      output: "Result",
+      noOutput: "No result was recorded",
+      noText: "No text was recorded for this event",
+      noFindings: "No diagnostic rules matched this recording",
+      repeated: "Repeated calls with identical input",
+      repeatedDetail: "{count} calls, including {failed} failures",
+      large: "Large tool output",
+      largeDetail: "Original output: {bytes}. Open the recorded call",
+      failedTitle: "Call returned a failure",
+      failedDetail: "Inspect the command, result and exit code",
+      cached: "Cached input",
+      outputTokens: "Output tokens",
+      usageNote:
+        "Usage recorded for {known}/{total} turns; missing fields show —",
+      bytesNote: "Output bytes are not a token estimate",
+      compareTitle: "Two runs, side by side",
+      compareSubtitle: "Values come from the two recordings",
+      metric: "Metric",
+      delta: "Change",
+      noCompare:
+        "Use --compare in the CLI or import a report containing a comparison run",
+      copied: "Copied",
+      copyFailed: "Clipboard is unavailable; select and copy the text manually",
+      saved: "Offline report saved",
+      invalid: "Invalid report; import JSON generated by Agent Rewind",
+      tooLarge: "Report exceeds the 16 MiB limit",
+      outputClipped: "Showing the first 16,384 characters",
+      lineLabel: "Lines {first}–{last}",
+      sequence: "Step {n}",
+      limited: "Showing the first 300 matching steps",
+      source: "Codex JSONL",
+      tokenUnknown: "Usage was not recorded",
+      timingUnknown: "The original log has no timestamps",
+      compareSample: "Run differences in a synthetic demo",
+    },
+  };
+  let locale = "zh";
+  try {
+    locale =
+      localStorage.getItem("independent-tools.locale") === "en" ? "en" : "zh";
+  } catch {}
+  const t = (key, values = {}) =>
+    Object.entries(values).reduce(
+      (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+      copy[locale][key] ?? key,
+    );
+  const esc = (value) =>
+    String(value ?? "").replace(
+      /[&<>"']/g,
+      (char) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char],
+    );
+  const number = (value) =>
+    value === null || value === undefined
+      ? "—"
+      : Number(value).toLocaleString(locale === "zh" ? "zh-CN" : "en-US");
+  const bytes = (value) =>
+    Number(value) < 1024
+      ? `${number(value)} B`
+      : `${(Number(value) / 1024).toFixed(1)} KiB`;
+  const icon = (kind) =>
+    ({ tool: "⌘", file: "▤", message: "≡", error: "!", note: "·" })[kind] ??
+    "·";
+  function validate(data, depth = 0) {
+    if (
+      depth > 1 ||
+      data?.schema !== "agent-rewind/v1" ||
+      !Array.isArray(data.events) ||
+      data.events.length > 20000 ||
+      !data.summary?.usage ||
+      !Array.isArray(data.findings) ||
+      !Array.isArray(data.turns)
+    )
+      throw Error(t("invalid"));
+    const ids = new Set();
+    const integer = (v) => Number.isSafeInteger(v) && v >= 0;
+    if (
+      !["title", "source", "thread_id"].every(
+        (k) => typeof data[k] === "string",
+      ) ||
+      !Array.isArray(data.warnings) ||
+      ![
+        "events",
+        "tool_calls",
+        "failed_calls",
+        "files_changed",
+        "turns",
+        "usage_turns",
+        "output_bytes",
+      ].every((k) => integer(data.summary[k])) ||
+      !["input_tokens", "cached_input_tokens", "output_tokens"].every(
+        (k) => data.summary.usage[k] === null || integer(data.summary.usage[k]),
+      )
+    )
+      throw Error(t("invalid"));
+    for (const e of data.events) {
+      if (
+        !e ||
+        !["id", "kind", "status", "title", "input", "output", "text"].every(
+          (k) => typeof e[k] === "string",
+        ) ||
+        ids.has(e.id) ||
+        !Array.isArray(e.paths)
+      )
+        throw Error(t("invalid"));
+      if (
+        !e.paths.every(
+          (p) =>
+            p && typeof p.path === "string" && typeof p.action === "string",
+        )
+      )
+        throw Error(t("invalid"));
+      if (
+        !["tool", "file", "message", "error", "note"].includes(e.kind) ||
+        !["completed", "failed", "in_progress", "unknown"].includes(e.status) ||
+        !["source_line", "end_line", "order"].every((k) => integer(e[k])) ||
+        !["at_ms", "duration_ms"].every(
+          (k) =>
+            e[k] === null ||
+            (typeof e[k] === "number" && Number.isFinite(e[k])),
+        )
+      )
+        throw Error(t("invalid"));
+      ids.add(e.id);
+    }
+    if (
+      !data.findings.every(
+        (f) =>
+          f &&
+          ["repeated_call", "large_output", "failed_call"].includes(f.code) &&
+          Array.isArray(f.event_ids) &&
+          f.event_ids.every((id) => ids.has(id)),
+      )
+    )
+      throw Error(t("invalid"));
+    if (data.comparison) validate(data.comparison, depth + 1);
+    return data;
+  }
+  let primary = validate(JSON.parse($("report-data").textContent));
+  let report = primary,
+    cursor = 0,
+    filter = "all",
+    query = "",
+    mode = "replay",
+    timer = null;
+  const name = (data) => data.title_i18n?.[locale] ?? data.title;
+  let toastTimer;
+  function toast(text) {
+    $("toast").textContent = text;
+    $("toast").classList.add("visible");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $("toast").classList.remove("visible"), 2600);
+  }
+  function stop() {
+    clearInterval(timer);
+    timer = null;
+    $("play").textContent = t("play");
+  }
+  function choose(index) {
+    cursor = Math.max(0, Math.min(report.events.length - 1, index));
+    renderReplay();
+  }
+  function summary() {
+    const s = report.summary;
+    const values = [
+      ["toolCalls", s.tool_calls, "⌘", ""],
+      ["failedCalls", s.failed_calls, "!", "red"],
+      ["changedFiles", s.files_changed, "▤", "green"],
+      ["inputTokens", s.usage.input_tokens, "↗", ""],
+    ];
+    $("metrics").innerHTML = values
+      .map(
+        ([key, value, glyph, color]) =>
+          `<article class="metric"><div><div class="metric-label">${esc(t(key))}</div><strong>${esc(number(value))}</strong><small>${esc(key === "inputTokens" ? t("usageNote", { known: s.usage_turns, total: s.turns }) : t("recordedOnly"))}</small></div><span class="metric-icon ${color}">${glyph}</span></article>`,
+      )
+      .join("");
+    $("session-title").textContent = name(report);
+    $("sample-badge").textContent = t(
+      report.synthetic ? "synthetic" : "imported",
+    );
+    $("source-label").textContent = t("source");
+    $("original").classList.toggle("active", report === primary);
+    $("revised").classList.toggle("active", report !== primary);
+    $("revised").disabled = !primary.comparison;
+    $("revised").title = primary.comparison ? "" : t("noCompare");
+    $("compare-tab").disabled = !primary.comparison;
+    $("compare-tab").title = primary.comparison ? "" : t("noCompare");
+    $("report-note").textContent = report.events.some((e) => e.at_ms !== null)
+      ? `${report.events.length} ${t("events")}`
+      : t("timingUnknown");
+  }
+  function renderList() {
+    const matches = report.events
+      .map((e, index) => ({ e, index }))
+      .filter(
+        ({ e }) =>
+          (filter === "all" ||
+            e.kind === filter ||
+            (filter === "error" && e.status === "failed")) &&
+          `${e.title}\n${e.input}\n${e.output}\n${e.text}\n${e.paths.map((p) => p.path).join(" ")}`
+            .toLowerCase()
+            .includes(query),
+      );
+    $("event-count").textContent = `${matches.length}/${report.events.length}`;
+    $("event-list").innerHTML =
+      matches
+        .slice(0, 300)
+        .map(
+          ({ e, index }) =>
+            `<button class="event-row ${index === cursor ? "active" : ""}" data-step="${index}" aria-current="${index === cursor ? "step" : "false"}"><span class="event-icon ${esc(e.status)}">${icon(e.kind)}</span><span class="event-info"><strong>${esc(e.kind === "file" ? e.paths.map((p) => p.path).join(", ") || t("file") : e.kind === "message" ? e.text.split("\n")[0] || t("message") : e.title)}</strong><small>${esc(e.at_ms === null ? t("sequence", { n: e.order }) : `${(Number(e.at_ms) / 1000).toFixed(1)}s`)} · ${esc(t(e.kind))}</small></span><i class="status-dot ${esc(e.status)}"></i></button>`,
+        )
+        .join("") || `<div class="empty">${esc(t("empty"))}</div>`;
+    $("event-list")
+      .querySelectorAll("[data-step]")
+      .forEach(
+        (button) =>
+          (button.onclick = () => {
+            stop();
+            choose(Number(button.dataset.step));
+          }),
+      );
+    $("list-note").textContent =
+      matches.length > 300
+        ? t("limited")
+        : `${number(report.events.length)} ${t("events")}`;
+  }
+  function renderDetail() {
+    const e = report.events[cursor];
+    if (!e) {
+      $("detail-title").textContent = t("empty");
+      $("detail-status").textContent = "";
+      $("detail-meta").textContent = "";
+      $("detail-body").innerHTML =
+        `<div class="empty">${esc(t("empty"))}</div>`;
+      return;
+    }
+    $("detail-icon").textContent = icon(e.kind);
+    $("detail-title").textContent = ["file", "message", "note"].includes(e.kind)
+      ? t(e.kind)
+      : e.title;
+    $("detail-status").textContent = t(e.status);
+    $("detail-status").className =
+      `pill ${["completed", "failed", "in_progress"].includes(e.status) ? e.status : ""}`;
+    $("detail-meta").innerHTML =
+      `<span>${esc(t("lineLabel", { first: e.source_line, last: e.end_line }))}</span><span>${esc(t("duration"))}: ${e.duration_ms === null ? "—" : esc(`${(Number(e.duration_ms) / 1000).toFixed(2)}s`)}</span>${e.exit_code !== undefined ? `<span>Exit ${esc(number(e.exit_code))}</span>` : ""}`;
+    if (e.kind === "tool") {
+      $("detail-body").innerHTML =
+        `<div class="code-title"><span>${esc(t("input"))}</span><span>${esc(e.tool_name)}</span></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i><span>${esc(e.tool_name || "tool")}</span></div><pre><span class="prompt">› </span>${esc(e.input || e.title)}</pre></div><div class="output-label"><span>${esc(t("output"))}</span><span class="muted">${esc(bytes(e.output_bytes ?? 0))}</span></div><div class="output-text">${esc(e.output || t("noOutput"))}</div>${e.truncated ? `<p class="token-note">${esc(t("outputClipped"))}</p>` : ""}`;
+    } else if (e.kind === "file") {
+      $("detail-body").innerHTML =
+        e.paths
+          .map(
+            (p) =>
+              `<div class="file-row"><span class="pill blue">${esc(p.action)}</span><strong>${esc(p.path)}</strong></div>`,
+          )
+          .join("") || `<div class="empty">${esc(t("noText"))}</div>`;
+    } else
+      $("detail-body").innerHTML =
+        `<div class="message-text">${esc(e.text || t("noText"))}</div>`;
+    $("step-label").textContent =
+      `${t("step")} ${cursor + 1} / ${report.events.length}`;
+    $("scrubber").max = Math.max(0, report.events.length - 1);
+    $("scrubber").value = cursor;
+    $("previous").disabled = cursor === 0;
+    $("next").disabled = cursor >= report.events.length - 1;
+  }
+  function renderFindings() {
+    $("finding-count").textContent = report.findings.length;
+    $("finding-list").innerHTML =
+      report.findings
+        .map((f, index) => {
+          const title =
+            f.code === "repeated_call"
+              ? t("repeated")
+              : f.code === "large_output"
+                ? t("large")
+                : t("failedTitle");
+          const detail =
+            f.code === "repeated_call"
+              ? t("repeatedDetail", f)
+              : f.code === "large_output"
+                ? t("largeDetail", { bytes: bytes(f.bytes) })
+                : t("failedDetail");
+          return `<button class="finding" data-finding="${index}"><strong><span><span class="finding-mark">!</span>${esc(title)}</span><span class="arrow">↗</span></strong><p>${esc(detail)}</p></button>`;
+        })
+        .join("") || `<div class="empty">${esc(t("noFindings"))}</div>`;
+    $("finding-list")
+      .querySelectorAll("[data-finding]")
+      .forEach(
+        (button) =>
+          (button.onclick = () => {
+            stop();
+            filter = "all";
+            query = "";
+            $("search").value = "";
+            const f = report.findings[Number(button.dataset.finding)];
+            const index = report.events.findIndex((e) =>
+              f.event_ids.includes(e.id),
+            );
+            if (index >= 0) choose(index);
+            renderFilters();
+          }),
+      );
+    const usage = report.summary.usage;
+    const ratio =
+      usage.input_tokens > 0 && usage.cached_input_tokens !== null
+        ? Math.min(100, (usage.cached_input_tokens / usage.input_tokens) * 100)
+        : 0;
+    $("token-ledger").innerHTML =
+      [
+        ["inputTokens", usage.input_tokens],
+        ["cached", usage.cached_input_tokens],
+        ["outputTokens", usage.output_tokens],
+      ]
+        .map(
+          ([key, value]) =>
+            `<div class="ledger-row"><span>${esc(t(key))}</span><strong>${esc(number(value))}</strong></div>`,
+        )
+        .join("") +
+      `<div class="token-bar"><i style="width:${ratio}%"></i></div><p class="token-note">${esc(t("usageNote", { known: report.summary.usage_turns, total: report.summary.turns }))}<br>${esc(t("bytesNote"))}</p>`;
+  }
+  function renderFilters() {
+    $("filters").innerHTML = ["all", "tool", "file", "error"]
+      .map(
+        (key) =>
+          `<button data-filter="${key}" class="${filter === key ? "active" : ""}">${esc(t(key))}</button>`,
+      )
+      .join("");
+    $("filters")
+      .querySelectorAll("button")
+      .forEach(
+        (button) =>
+          (button.onclick = () => {
+            filter = button.dataset.filter;
+            renderFilters();
+            renderList();
+          }),
+      );
+  }
+  function renderReplay() {
+    renderList();
+    renderDetail();
+  }
+  function renderCompare() {
+    const other = primary.comparison;
+    if (!other) return;
+    const fields = [
+      ["toolCalls", "tool_calls"],
+      ["failedCalls", "failed_calls"],
+      ["changedFiles", "files_changed"],
+      ["inputTokens", "input_tokens"],
+      ["outputTokens", "output_tokens"],
+    ];
+    const get = (data, key) =>
+      key.endsWith("tokens") ? data.summary.usage[key] : data.summary[key];
+    $("compare-view").innerHTML =
+      `<h2>${esc(t("compareTitle"))}</h2><p>${esc(primary.synthetic && other.synthetic ? t("compareSample") : t("compareSubtitle"))}</p><table><thead><tr><th>${esc(t("metric"))}</th><th>${esc(name(primary))}</th><th>${esc(name(other))}</th><th>${esc(t("delta"))}</th></tr></thead><tbody>${fields
+        .map(([label, key]) => {
+          const a = get(primary, key),
+            b = get(other, key);
+          const delta =
+            a === null || b === null
+              ? "—"
+              : `${b - a > 0 ? "+" : ""}${number(b - a)}`;
+          return `<tr><td>${esc(t(label))}</td><td>${esc(number(a))}</td><td>${esc(number(b))}</td><td class="delta">${esc(delta)}</td></tr>`;
+        })
+        .join("")}</tbody></table><div class="compare-sessions">${[
+        primary,
+        other,
+      ]
+        .map(
+          (data) =>
+            `<article class="compare-session"><h3>${esc(name(data))}</h3><ul>${data.events
+              .filter((e) => e.kind === "tool")
+              .slice(0, 10)
+              .map((e) => `<li>${esc(t(e.status))} · ${esc(e.title)}</li>`)
+              .join("")}</ul></article>`,
+        )
+        .join("")}</div>`;
+  }
+  function render() {
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+    document.title = `Agent Rewind · ${t("heading")}`;
+    document
+      .querySelectorAll("[data-i18n]")
+      .forEach((node) => (node.textContent = t(node.dataset.i18n)));
+    $("language").textContent = locale === "zh" ? "English" : "中文";
+    $("language").setAttribute(
+      "aria-label",
+      locale === "zh" ? "Switch to English" : "切换为中文",
+    );
+    $("search").placeholder = t("search");
+    $("search").setAttribute("aria-label", t("search"));
+    $("play").textContent = t(timer ? "pause" : "play");
+    summary();
+    renderFilters();
+    renderReplay();
+    renderFindings();
+    renderCompare();
+    $("replay-view").hidden = mode !== "replay";
+    $("compare-view").hidden = mode !== "compare";
+    $("replay-tab").classList.toggle("active", mode === "replay");
+    $("compare-tab").classList.toggle("active", mode === "compare");
+  }
+  function download(content, type, filename) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  $("language").onclick = () => {
+    locale = locale === "zh" ? "en" : "zh";
+    try {
+      localStorage.setItem("independent-tools.locale", locale);
+    } catch {}
+    render();
+  };
+  $("search").oninput = (event) => {
+    query = event.target.value.toLowerCase();
+    renderList();
+  };
+  $("scrubber").oninput = (event) => {
+    stop();
+    choose(Number(event.target.value));
+  };
+  $("previous").onclick = () => {
+    stop();
+    choose(cursor - 1);
+  };
+  $("next").onclick = () => {
+    stop();
+    choose(cursor + 1);
+  };
+  $("play").onclick = () => {
+    if (timer) {
+      stop();
+      return;
+    }
+    if (cursor >= report.events.length - 1) cursor = -1;
+    timer = setInterval(() => {
+      if (cursor >= report.events.length - 1) {
+        stop();
+        return;
+      }
+      choose(cursor + 1);
+    }, 850);
+    $("play").textContent = t("pause");
+  };
+  $("original").onclick = () => {
+    stop();
+    report = primary;
+    cursor = 0;
+    render();
+  };
+  $("revised").onclick = () => {
+    if (!primary.comparison) return;
+    stop();
+    report = primary.comparison;
+    cursor = 0;
+    render();
+  };
+  $("replay-tab").onclick = () => {
+    mode = "replay";
+    render();
+  };
+  $("compare-tab").onclick = () => {
+    if (primary.comparison) {
+      stop();
+      mode = "compare";
+      render();
+    }
+  };
+  $("copy").onclick = async () => {
+    const e = report.events[cursor];
+    if (!e) return;
+    try {
+      await navigator.clipboard.writeText(
+        e.input || e.text || e.paths.map((p) => p.path).join("\n"),
+      );
+      toast(t("copied"));
+    } catch {
+      toast(t("copyFailed"));
+    }
+  };
+  $("import").onclick = () => $("file").click();
+  $("file").onchange = async () => {
+    const file = $("file").files[0];
+    if (!file) return;
+    try {
+      if (file.size > 16 * 1024 * 1024) throw Error(t("tooLarge"));
+      const data = validate(JSON.parse(await file.text()));
+      stop();
+      primary = data;
+      report = data;
+      cursor = 0;
+      filter = "all";
+      query = "";
+      mode = "replay";
+      $("search").value = "";
+      render();
+    } catch (error) {
+      toast(error.message || t("invalid"));
+    } finally {
+      $("file").value = "";
+    }
+  };
+  $("json-export").onclick = () =>
+    download(
+      JSON.stringify(primary, null, 2),
+      "application/json",
+      "agent-rewind-report.json",
+    );
+  $("export").onclick = () => {
+    stop();
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelector("#report-data").textContent = JSON.stringify(
+      primary,
+    ).replaceAll("<", "\\u003c");
+    clone.querySelector("#toast").classList.remove("visible");
+    download(
+      "<!doctype html>\n" + clone.outerHTML,
+      "text/html",
+      "agent-rewind-report.html",
+    );
+    toast(t("saved"));
+  };
+  render();
+})();
