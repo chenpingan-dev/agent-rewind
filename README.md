@@ -1,13 +1,20 @@
 # Agent Rewind
 
-**Find where an AI coding session got stuck — from an explicit Codex JSONL log**
+### A replay button for your Codex sessions
 
-[Open session replay](https://chenpingan-dev.github.io/agent-rewind/) · [中文说明](README.zh-CN.md) · [MIT](LICENSE)
+[Open a recording →](https://chenpingan-dev.github.io/agent-rewind/) · [Install](#replay-a-session) · [English](README.md) / [简体中文](README.zh-CN.md)
 
-![CI](https://github.com/chenpingan-dev/agent-rewind/actions/workflows/ci.yml/badge.svg)
-![Agent Rewind replay](assets/screenshot.png)
+[![Tests](https://github.com/chenpingan-dev/agent-rewind/actions/workflows/ci.yml/badge.svg)](https://github.com/chenpingan-dev/agent-rewind/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-25272b)](LICENSE)
 
-Three identical test runs, a broad search dumping pages of output, then the actual fix. Agent Rewind turns these recorded steps into a searchable timeline and links each diagnostic to its source lines. Compare a second run to see the recorded difference in calls, failures and token usage.
+The same test fails three times. A search floods the context. The fix comes later in the log. **Rewind to the call that matters** — inspect its input, output and source lines, then compare the next run.
+
+![Agent Rewind: a failed call, its result, and the session track](assets/screenshot.png)
+
+- **Replay the steps** — move through a session with the playback controls or jump along the track
+- **Follow a finding** — open repeated calls, failures and large outputs at their recorded source
+- **Compare two runs** — see changes in calls, failures and recorded token usage
+
+Reads exported Codex exec JSONL. Runs locally with Python's standard library. Reports open offline, with 中文 / English built in.
 
 <a id="try-it-in-one-minute"></a>
 
@@ -59,6 +66,6 @@ python scripts/build_demo.py
 
 The workspace builder analyzes two synthetic fixtures with the same parser used by the CLI. `build/index.html` is deployed as a static GitHub Pages site. The package includes the UI assets; generated reports also work away from the repository.
 
-[Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md)
+[Design](docs/design.md) · [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md)
 
 Related work: [Langfuse](https://github.com/langfuse/langfuse) offers broad instrumented observability; [Context Mode](https://github.com/mksglu/context-mode) addresses agent context and memory. This project focuses on replaying an already exported Codex log without instrumentation. Independent, AI-assisted implementation; no affiliation with OpenAI or these projects.

@@ -3,21 +3,29 @@
   const $ = (id) => document.getElementById(id);
   const copy = {
     zh: {
-      offline: "离线报告",
-      heading: "会话复盘",
-      subtitle: "定位重复执行和失败调用，比较两次运行的差异",
-      import: "↑ 导入报告",
-      export: "↓ 保存离线报告",
+      offline: "仅在本地处理",
+      skip: "跳转到回放",
+      eyebrow: "AI SESSION REPLAY",
+      headline: "回到问题发生的那一步",
+      recordedUsage: "日志记录值",
+      previous: "上一步",
+      next: "下一步",
+      position: "回放位置",
+      heading: "会话回放",
+      subtitle: "回放执行过程，找到重复调用与失败，再对照下一次运行",
+      import: "打开运行记录",
+      export: "保存回放 ↗",
       original: "原始运行",
       revised: "对照运行",
       replay: "执行回放",
       compare: "运行对比",
-      events: "执行记录",
-      findings: "值得查看",
-      ledger: "Token 账本",
+      events: "执行轨道",
+      recordedSteps: "条执行记录",
+      findings: "诊断提示",
+      ledger: "Token 用量",
       portable: "一份文件，完整复盘",
-      portableDescription: "报告可以离线打开，带着执行记录一起分享",
-      footer: "Agent Rewind · 记录来自导入的日志",
+      portableDescription: "运行记录留在浏览器里，保存后可离线回放",
+      footer: "Agent Rewind · 回放记录，不执行命令",
       exportJson: "导出 JSON ↗",
       recordedOnly: "只回放已记录的步骤",
       copy: "复制内容",
@@ -26,7 +34,7 @@
       toolCalls: "工具调用",
       failedCalls: "失败调用",
       changedFiles: "修改文件",
-      inputTokens: "累计输入 token",
+      inputTokens: "输入 token",
       all: "全部",
       tool: "工具",
       file: "文件",
@@ -38,7 +46,7 @@
       in_progress: "执行中",
       unknown: "未知",
       empty: "没有匹配的记录",
-      search: "搜索命令、文件或输出",
+      search: "搜索执行记录…",
       play: "▶ 播放",
       pause: "Ⅱ 暂停",
       line: "日志行",
@@ -49,11 +57,11 @@
       noOutput: "日志没有记录返回内容",
       noText: "该事件没有记录文本",
       noFindings: "当前记录没有触发诊断提示",
-      repeated: "相同输入重复执行",
+      repeated: "相同调用反复出现",
       repeatedDetail: "共 {count} 次，其中 {failed} 次失败",
       large: "单次工具输出较大",
       largeDetail: "原始输出 {bytes}，点击查看对应调用",
-      failedTitle: "调用返回失败",
+      failedTitle: "调用失败",
       failedDetail: "查看命令、返回内容和退出码",
       cached: "其中缓存输入",
       outputTokens: "输出 token",
@@ -79,22 +87,30 @@
       compareSample: "内置记录的运行差异",
     },
     en: {
-      offline: "Offline report",
+      offline: "Local processing",
+      skip: "Skip to replay",
+      eyebrow: "AI SESSION REPLAY",
+      headline: "Find the moment it went wrong",
+      recordedUsage: "Recorded usage",
+      previous: "Previous step",
+      next: "Next step",
+      position: "Replay position",
       heading: "Session replay",
-      subtitle: "Find repeated calls, inspect failures and compare runs",
-      import: "↑ Import report",
-      export: "↓ Save offline report",
+      subtitle: "Replay the steps, follow a failure, compare the next run",
+      import: "Open a recording",
+      export: "Save replay ↗",
       original: "Original run",
       revised: "Comparison run",
       replay: "Replay",
       compare: "Compare runs",
-      events: "Recorded steps",
-      findings: "Worth a look",
-      ledger: "Token ledger",
+      events: "Session track",
+      recordedSteps: "recorded steps",
+      findings: "Findings",
+      ledger: "Token usage",
       portable: "One file, the full replay",
       portableDescription:
-        "Open it offline or share it with the recorded steps included",
-      footer: "Agent Rewind · Evidence comes from the imported log",
+        "Your recording stays in this browser. Save it to replay offline",
+      footer: "Agent Rewind · Recorded steps, never executed commands",
       exportJson: "Export JSON ↗",
       recordedOnly: "Replay recorded steps only",
       copy: "Copy content",
@@ -103,7 +119,7 @@
       toolCalls: "Tool calls",
       failedCalls: "Failed calls",
       changedFiles: "Changed files",
-      inputTokens: "Recorded input tokens",
+      inputTokens: "Input tokens",
       all: "All",
       tool: "Tools",
       file: "Files",
@@ -115,7 +131,7 @@
       in_progress: "In progress",
       unknown: "Unknown",
       empty: "No matching steps",
-      search: "Search commands, files or output",
+      search: "Search this recording…",
       play: "▶ Play",
       pause: "Ⅱ Pause",
       line: "Log lines",
@@ -126,11 +142,11 @@
       noOutput: "No result was recorded",
       noText: "No text was recorded for this event",
       noFindings: "No diagnostic rules matched this recording",
-      repeated: "Repeated calls with identical input",
+      repeated: "The same call, again",
       repeatedDetail: "{count} calls, including {failed} failures",
       large: "Large tool output",
       largeDetail: "Original output: {bytes}. Open the recorded call",
-      failedTitle: "Call returned a failure",
+      failedTitle: "Failed call",
       failedDetail: "Inspect the command, result and exit code",
       cached: "Cached input",
       outputTokens: "Output tokens",
@@ -266,9 +282,14 @@
     if (data.comparison) validate(data.comparison, depth + 1);
     return data;
   }
+  const firstStep = (data) =>
+    Math.max(
+      0,
+      data.events.findIndex((e) => e.status === "failed"),
+    );
   let primary = validate(JSON.parse($("report-data").textContent));
   let report = primary,
-    cursor = 0,
+    cursor = firstStep(primary),
     filter = "all",
     query = "",
     mode = "replay",
@@ -287,21 +308,38 @@
     $("play").textContent = t("play");
   }
   function choose(index) {
+    const trackFocused = document.activeElement?.matches(
+      "#event-list [data-step]",
+    );
     cursor = Math.max(0, Math.min(report.events.length - 1, index));
     renderReplay();
+    scrollSelection();
+    if (trackFocused)
+      $("event-list").querySelector(".active")?.focus({ preventScroll: true });
+  }
+  function scrollSelection() {
+    const row = $("event-list").querySelector(".active");
+    if (row) {
+      const bounds = $("event-list").getBoundingClientRect();
+      const rect = row.getBoundingClientRect();
+      if (rect.left < bounds.left)
+        $("event-list").scrollLeft -= bounds.left - rect.left + 12;
+      else if (rect.right > bounds.right)
+        $("event-list").scrollLeft += rect.right - bounds.right + 12;
+    }
   }
   function summary() {
     const s = report.summary;
     const values = [
-      ["toolCalls", s.tool_calls, "⌘", ""],
-      ["failedCalls", s.failed_calls, "!", "red"],
-      ["changedFiles", s.files_changed, "▤", "green"],
-      ["inputTokens", s.usage.input_tokens, "↗", ""],
+      ["toolCalls", s.tool_calls],
+      ["failedCalls", s.failed_calls],
+      ["changedFiles", s.files_changed],
+      ["inputTokens", s.usage.input_tokens],
     ];
     $("metrics").innerHTML = values
       .map(
-        ([key, value, glyph, color]) =>
-          `<article class="metric"><div><div class="metric-label">${esc(t(key))}</div><strong>${esc(number(value))}</strong><small>${esc(key === "inputTokens" ? t("usageNote", { known: s.usage_turns, total: s.turns }) : t("recordedOnly"))}</small></div><span class="metric-icon ${color}">${glyph}</span></article>`,
+        ([key, value]) =>
+          `<article class="metric metric-${key}"><strong>${esc(number(value))}</strong><span class="metric-label">${esc(t(key))}</span></article>`,
       )
       .join("");
     $("session-title").textContent = name(report);
@@ -316,10 +354,11 @@
     $("compare-tab").disabled = !primary.comparison;
     $("compare-tab").title = primary.comparison ? "" : t("noCompare");
     $("report-note").textContent = report.events.some((e) => e.at_ms !== null)
-      ? `${report.events.length} ${t("events")}`
+      ? `${report.events.length} ${t("recordedSteps")}`
       : t("timingUnknown");
   }
   function renderList() {
+    const savedScroll = $("event-list").scrollLeft;
     const matches = report.events
       .map((e, index) => ({ e, index }))
       .filter(
@@ -337,9 +376,10 @@
         .slice(0, 300)
         .map(
           ({ e, index }) =>
-            `<button class="event-row ${index === cursor ? "active" : ""}" data-step="${index}" aria-current="${index === cursor ? "step" : "false"}"><span class="event-icon ${esc(e.status)}">${icon(e.kind)}</span><span class="event-info"><strong>${esc(e.kind === "file" ? e.paths.map((p) => p.path).join(", ") || t("file") : e.kind === "message" ? e.text.split("\n")[0] || t("message") : e.title)}</strong><small>${esc(e.at_ms === null ? t("sequence", { n: e.order }) : `${(Number(e.at_ms) / 1000).toFixed(1)}s`)} · ${esc(t(e.kind))}</small></span><i class="status-dot ${esc(e.status)}"></i></button>`,
+            `<button class="event-row ${index === cursor ? "active" : ""}" data-step="${index}" aria-current="${index === cursor ? "step" : "false"}"><span class="event-icon ${esc(e.status)}">${icon(e.kind)}</span><span class="step-number">${String(index + 1).padStart(2, "0")}</span><span class="event-info"><strong>${esc(e.kind === "file" ? e.paths.map((p) => p.path).join(", ") || t("file") : e.kind === "message" ? e.text.split("\n")[0] || t("message") : e.title)}</strong><small>${esc(e.at_ms === null ? t("sequence", { n: e.order }) : `${(Number(e.at_ms) / 1000).toFixed(1)}s`)} · ${esc(t(e.kind))}</small></span><i class="status-dot ${esc(e.status)}"></i></button>`,
         )
         .join("") || `<div class="empty">${esc(t("empty"))}</div>`;
+    $("event-list").scrollLeft = savedScroll;
     $("event-list")
       .querySelectorAll("[data-step]")
       .forEach(
@@ -352,11 +392,19 @@
     $("list-note").textContent =
       matches.length > 300
         ? t("limited")
-        : `${number(report.events.length)} ${t("events")}`;
+        : `${number(report.events.length)} ${t("recordedSteps")}`;
   }
   function renderDetail() {
     const e = report.events[cursor];
+    $("play").disabled = !e;
+    $("copy").disabled = !e;
+    $("scrubber").disabled = !e;
     if (!e) {
+      $("step-label").textContent = `${t("step")} 0 / 0`;
+      $("previous").disabled = true;
+      $("next").disabled = true;
+      $("scrubber").max = 0;
+      $("scrubber").value = 0;
       $("detail-title").textContent = t("empty");
       $("detail-status").textContent = "";
       $("detail-meta").textContent = "";
@@ -375,7 +423,7 @@
       `<span>${esc(t("lineLabel", { first: e.source_line, last: e.end_line }))}</span><span>${esc(t("duration"))}: ${e.duration_ms === null ? "—" : esc(`${(Number(e.duration_ms) / 1000).toFixed(2)}s`)}</span>${e.exit_code !== undefined ? `<span>Exit ${esc(number(e.exit_code))}</span>` : ""}`;
     if (e.kind === "tool") {
       $("detail-body").innerHTML =
-        `<div class="code-title"><span>${esc(t("input"))}</span><span>${esc(e.tool_name)}</span></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i><span>${esc(e.tool_name || "tool")}</span></div><pre><span class="prompt">› </span>${esc(e.input || e.title)}</pre></div><div class="output-label"><span>${esc(t("output"))}</span><span class="muted">${esc(bytes(e.output_bytes ?? 0))}</span></div><div class="output-text">${esc(e.output || t("noOutput"))}</div>${e.truncated ? `<p class="token-note">${esc(t("outputClipped"))}</p>` : ""}`;
+        `<div class="call-columns"><section><div class="code-title"><span>${esc(t("input"))}</span><span>${esc(e.tool_name)}</span></div><div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i><span>${esc(e.tool_name || "tool")}</span></div><pre><span class="prompt">› </span>${esc(e.input || e.title)}</pre></div></section><section><div class="output-label"><span>${esc(t("output"))}</span><span class="muted">${esc(bytes(e.output_bytes ?? 0))}</span></div><div class="output-text">${esc(e.output || t("noOutput"))}</div></section></div>${e.truncated ? `<p class="token-note">${esc(t("outputClipped"))}</p>` : ""}`;
     } else if (e.kind === "file") {
       $("detail-body").innerHTML =
         e.paths
@@ -453,7 +501,7 @@
     $("filters").innerHTML = ["all", "tool", "file", "error"]
       .map(
         (key) =>
-          `<button data-filter="${key}" class="${filter === key ? "active" : ""}">${esc(t(key))}</button>`,
+          `<button data-filter="${key}" aria-pressed="${filter === key}" class="${filter === key ? "active" : ""}">${esc(t(key))}</button>`,
       )
       .join("");
     $("filters")
@@ -519,6 +567,9 @@
       "aria-label",
       locale === "zh" ? "Switch to English" : "切换为中文",
     );
+    $("previous").setAttribute("aria-label", t("previous"));
+    $("next").setAttribute("aria-label", t("next"));
+    $("scrubber").setAttribute("aria-label", t("position"));
     $("search").placeholder = t("search");
     $("search").setAttribute("aria-label", t("search"));
     $("play").textContent = t(timer ? "pause" : "play");
@@ -529,8 +580,11 @@
     renderCompare();
     $("replay-view").hidden = mode !== "replay";
     $("compare-view").hidden = mode !== "compare";
+    $("replay-tab").setAttribute("aria-pressed", String(mode === "replay"));
+    $("compare-tab").setAttribute("aria-pressed", String(mode === "compare"));
     $("replay-tab").classList.toggle("active", mode === "replay");
     $("compare-tab").classList.toggle("active", mode === "compare");
+    if (mode === "replay") scrollSelection();
   }
   function download(content, type, filename) {
     const url = URL.createObjectURL(new Blob([content], { type }));
@@ -581,14 +635,14 @@
   $("original").onclick = () => {
     stop();
     report = primary;
-    cursor = 0;
+    cursor = firstStep(report);
     render();
   };
   $("revised").onclick = () => {
     if (!primary.comparison) return;
     stop();
     report = primary.comparison;
-    cursor = 0;
+    cursor = firstStep(report);
     render();
   };
   $("replay-tab").onclick = () => {
@@ -624,7 +678,7 @@
       stop();
       primary = data;
       report = data;
-      cursor = 0;
+      cursor = firstStep(report);
       filter = "all";
       query = "";
       mode = "replay";

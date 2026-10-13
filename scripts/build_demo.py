@@ -45,10 +45,10 @@ def main():
     examples.mkdir(exist_ok=True); build.mkdir(exist_ok=True)
     for name, revised in (("repeated-run", False), ("focused-run", True)):
         (examples / f"{name}.jsonl").write_text(fixture(revised), encoding="utf-8")
-    report = analyze(fixture(), "Notebook export · repeated run")
-    report["title_i18n"] = {"zh": "笔记导出修复 · 重复执行的运行", "en": "Notebook export · repeated run"}
-    report["comparison"] = analyze(fixture(True), "Notebook export · focused run")
-    report["comparison"]["title_i18n"] = {"zh": "笔记导出修复 · 缩小搜索后的运行", "en": "Notebook export · focused run"}
+    report = analyze(fixture(), "Notebook export · Run 01")
+    report["title_i18n"] = {"zh": "笔记导出修复 · 第一次运行", "en": "Notebook export · Run 01"}
+    report["comparison"] = analyze(fixture(True), "Notebook export · Run 02")
+    report["comparison"]["title_i18n"] = {"zh": "笔记导出修复 · 第二次运行", "en": "Notebook export · Run 02"}
     (build / "index.html").write_text(render_html(report), encoding="utf-8")
     (build / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Built synthetic demo in build/index.html")
