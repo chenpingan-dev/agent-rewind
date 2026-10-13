@@ -6,12 +6,14 @@
 
 [![Tests](https://github.com/chenpingan-dev/agent-rewind/actions/workflows/ci.yml/badge.svg)](https://github.com/chenpingan-dev/agent-rewind/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-25272b)](LICENSE)
 
-The same test fails three times. A search floods the context. The fix comes later in the log. **Rewind to the call that matters** — inspect its input, output and source lines, then compare the next run.
+Agent Rewind is an **offline Codex CLI log viewer and session replay tool for AI agent debugging**. Turn exported `codex exec --json` (JSONL) logs into a searchable HTML report, trace failed tool calls back to their input and output, and compare recorded token usage across two runs.
+
+中文：本地 Codex 日志查看器与 AI 编码会话回放工具，用于排查失败调用、重复命令，并对比运行记录
 
 ![Agent Rewind: a failed call, its result, and the session track](assets/screenshot.png)
 
 - **Replay the steps** — move through a session with the playback controls or jump along the track
-- **Follow a finding** — open repeated calls, failures and large outputs at their recorded source
+- **Debug tool calls** — open repeated commands, failed calls and large outputs at their recorded source
 - **Compare two runs** — see changes in calls, failures and recorded token usage
 
 Reads exported Codex exec JSONL. Runs locally with Python's standard library. Reports open offline, with 中文 / English built in.
@@ -40,7 +42,7 @@ agent-rewind session.jsonl --html session.html
 
 The first command runs Codex and can change your working tree according to your task. Agent Rewind itself only reads the file you pass. Input follows the [official Codex exec JSONL format](https://learn.chatgpt.com/docs/non-interactive-mode). Other agent formats and internal Codex session files are not supported in v0.1.
 
-## What you get
+## Session replay and log analysis
 
 - One final step per item lifecycle, with source line ranges and optional recorded timing
 - Repeated tool input (3+ completed calls), failed calls and large raw output (8 KiB+)

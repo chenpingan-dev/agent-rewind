@@ -4,7 +4,7 @@
 
 [打开会话回放 →](https://chenpingan-dev.github.io/agent-rewind/) · [安装使用](#安装使用) · [English](README.md) / [简体中文](README.zh-CN.md)
 
-同一个测试跑了三遍，搜索结果刷了几屏，真正的修复藏在后面。**回到那次调用，直接看输入、结果和日志行号**，再与下一次运行对照
+Agent Rewind 是一个**本地运行的 Codex CLI 日志查看器与 AI 编码会话回放工具**，把 `codex exec --json` 导出的 JSONL 转成可搜索的 HTML 报告，用于排查失败调用、定位重复命令，并对比两次运行记录的 Token 用量
 
 ![Agent Rewind：调用内容、返回结果与执行轨道](assets/screenshot.zh-CN.png)
 
@@ -31,7 +31,7 @@ agent-rewind examples/repeated-run.jsonl --compare examples/focused-run.jsonl --
 
 前一条命令会运行 Codex，并可能修改工作区；Agent Rewind 只读取你传入的日志。页面导入的是 CLI 生成的报告 JSON，原始 JSONL 要先通过 CLI 分析
 
-## 数据与分析范围
+## 日志分析与会话对比的范围
 
 在线回放和仓库内的记录使用合成数据。同一调用的生命周期会合并为一个步骤，缺失时间和用量显示 `—`，不推测成本或节省比例
 
