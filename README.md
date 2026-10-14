@@ -15,6 +15,13 @@ Agent Rewind is an **offline Codex CLI log viewer and session replay tool for AI
 - **Replay the steps** — move through a session with the playback controls or jump along the track
 - **Debug tool calls** — open repeated commands, failed calls and large outputs at their recorded source
 - **Compare two runs** — see changes in calls, failures and recorded token usage
+- **Track repeated inputs** — see which call groups appeared, increased, decreased or disappeared, then open their source steps
+
+![Repeated call comparison, with source steps for each run](assets/comparison.png)
+
+In **Compare runs**, repeated inputs are grouped when either recording has at least three completed or failed calls. Each row shows both counts, failure counts and the change; expand **Inspect recorded calls** to jump to a source line in either run. Search covers the displayed title and input.
+
+Matching uses the same tool identity and full recorded input before redaction or truncation, so similar-looking commands remain separate. It does not infer whether a repeat was necessary or a problem was fixed. Reports created before v0.1.2 still open; regenerate both runs with the current CLI to enable group comparison. The view shows the first 100 matching groups and up to 30 source links per run, while replay and JSON retain all records.
 
 Reads exported Codex exec JSONL. Runs locally with Python's standard library. Reports open offline, with 中文 / English built in.
 
@@ -45,7 +52,7 @@ The first command runs Codex and can change your working tree according to your 
 ## Session replay and log analysis
 
 - One final step per item lifecycle, with source line ranges and optional recorded timing
-- Repeated tool input (3+ completed calls), failed calls and large raw output (8 KiB+)
+- Repeated tool input (3+ finished calls), failed calls and large raw output (8 KiB+)
 - Original versus comparison run, using recorded values rather than estimated savings
 - Token ledger: input, cached input and output; missing fields show `—`
 - Search, keyboard-accessible controls, CN/EN switch and JSON import/export

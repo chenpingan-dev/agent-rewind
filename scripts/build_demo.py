@@ -27,6 +27,9 @@ def fixture(revised=False):
              aggregated_output="FAIL: test_export_unicode\nExpected UTF-8 text, got escaped characters")
         item("scan", "command_execution", command="rg -n ensure_ascii notebox/export.py", exit_code=0,
              aggregated_output="notebox/export.py:18: json.dumps(note, ensure_ascii=True)")
+        for index in range(3):
+            item(f"diff-{index}", "command_execution", command="git diff --check", exit_code=0,
+                 aggregated_output="")
     item("edit", "file_change", changes=[{"path": "notebox/export.py", "kind": "update"},
                                           {"path": "tests/test_export.py", "kind": "update"}])
     item("verify", "command_execution", command="python -m unittest discover -s tests", exit_code=0,

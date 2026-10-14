@@ -84,7 +84,26 @@
       source: "Codex JSONL",
       tokenUnknown: "日志未提供用量",
       timingUnknown: "原始日志未记录时间戳",
-      compareSample: "内置记录的运行差异",
+      compareSample: "合成记录的运行差异",
+      repeatTitle: "重复调用对比",
+      repeatNote: "按工具与完整输入匹配，显示任一运行中已结束调用达到 3 次的组",
+      repeatSearch: "搜索调用内容…",
+      repeatEmpty: "没有符合条件的重复调用",
+      repeatUnavailable:
+        "这份旧报告没有调用匹配信息，请用最新版 CLI 重新生成两次运行的报告",
+      repeatCount: "{shown}/{total} 组",
+      repeatAdded: "新增",
+      repeatRemoved: "未再出现",
+      repeatIncreased: "次数增加",
+      repeatDecreased: "次数减少",
+      repeatUnchanged: "次数相同",
+      repeatFailures: "{count} 次失败",
+      repeatEvidence: "查看对应调用",
+      repeatSource: "行 {line} · {status}",
+      repeatSourceLimit:
+        "显示前 {shown}/{total} 次调用，完整记录保留在回放与 JSON 中",
+      repeatAbsent: "这份记录中没有相同的已结束调用",
+      overallTitle: "整体变化",
     },
     en: {
       offline: "Local processing",
@@ -171,7 +190,27 @@
       source: "Codex JSONL",
       tokenUnknown: "Usage was not recorded",
       timingUnknown: "The original log has no timestamps",
-      compareSample: "Run differences in the built-in recording",
+      compareSample: "Run differences in synthetic recordings",
+      repeatTitle: "Repeated calls",
+      repeatNote:
+        "Match the tool and full input; show groups with 3 or more finished calls in either run",
+      repeatSearch: "Search call input…",
+      repeatEmpty: "No repeated calls match",
+      repeatUnavailable:
+        "This older report has no call matching data; regenerate both runs with the latest CLI",
+      repeatCount: "{shown}/{total} groups",
+      repeatAdded: "New",
+      repeatRemoved: "Not seen again",
+      repeatIncreased: "More calls",
+      repeatDecreased: "Fewer calls",
+      repeatUnchanged: "Same count",
+      repeatFailures: "{count} failures",
+      repeatEvidence: "Inspect recorded calls",
+      repeatSource: "Line {line} · {status}",
+      repeatSourceLimit:
+        "Showing {shown}/{total} calls; replay and JSON retain the full recording",
+      repeatAbsent: "No matching finished calls in this recording",
+      overallTitle: "Overall totals",
     },
   };
   let locale = "zh";
@@ -279,6 +318,50 @@
       )
     )
       throw Error(t("invalid"));
+    if (data.call_groups !== undefined) {
+      const grouped = data.call_groups;
+      if (
+        grouped?.scheme !== "exact-tool-input/v1" ||
+        !Array.isArray(grouped.groups) ||
+        grouped.groups.length > data.events.length
+      )
+        throw Error(t("invalid"));
+      const finished = new Map(
+        data.events
+          .filter(
+            (e) =>
+              e.kind === "tool" && ["completed", "failed"].includes(e.status),
+          )
+          .map((e) => [e.id, e]),
+      );
+      const covered = new Set(),
+        fingerprints = new Set();
+      for (const g of grouped.groups) {
+        if (
+          !g ||
+          typeof g.fingerprint !== "string" ||
+          !/^[a-f0-9]{64}$/.test(g.fingerprint) ||
+          fingerprints.has(g.fingerprint) ||
+          !integer(g.count) ||
+          g.count < 1 ||
+          !integer(g.failed) ||
+          g.failed > g.count ||
+          !Array.isArray(g.event_ids) ||
+          g.event_ids.length !== g.count
+        )
+          throw Error(t("invalid"));
+        let failures = 0;
+        for (const id of g.event_ids) {
+          const event = finished.get(id);
+          if (!event || covered.has(id)) throw Error(t("invalid"));
+          covered.add(id);
+          if (event.status === "failed") failures++;
+        }
+        if (failures !== g.failed) throw Error(t("invalid"));
+        fingerprints.add(g.fingerprint);
+      }
+      if (covered.size !== finished.size) throw Error(t("invalid"));
+    }
     if (data.comparison) validate(data.comparison, depth + 1);
     return data;
   }
@@ -293,7 +376,8 @@
     filter = "all",
     query = "",
     mode = "replay",
-    timer = null;
+    timer = null,
+    repeatQuery = "";
   const name = (data) => data.title_i18n?.[locale] ?? data.title;
   let toastTimer;
   function toast(text) {
@@ -519,9 +603,145 @@
     renderList();
     renderDetail();
   }
+  function repeatedGroups() {
+    const other = primary.comparison;
+    if (!primary.call_groups || !other?.call_groups) return null;
+    const events = [primary, other].map(
+      (data) => new Map(data.events.map((e) => [e.id, e])),
+    );
+    const merged = new Map();
+    [primary, other].forEach((data, run) => {
+      for (const group of data.call_groups.groups) {
+        if (!merged.has(group.fingerprint))
+          merged.set(group.fingerprint, [null, null]);
+        merged.get(group.fingerprint)[run] = group;
+      }
+    });
+    const changes = {
+      repeatAdded: 0,
+      repeatIncreased: 1,
+      repeatUnchanged: 2,
+      repeatDecreased: 3,
+      repeatRemoved: 4,
+    };
+    return Array.from(merged.values())
+      .filter(([a, b]) => Math.max(a?.count ?? 0, b?.count ?? 0) >= 3)
+      .map(([a, b]) => {
+        const before = a?.count ?? 0,
+          after = b?.count ?? 0;
+        const change = !a
+          ? "repeatAdded"
+          : !b
+            ? "repeatRemoved"
+            : after > before
+              ? "repeatIncreased"
+              : after < before
+                ? "repeatDecreased"
+                : "repeatUnchanged";
+        const event = a
+          ? events[0].get(a.event_ids[0])
+          : events[1].get(b.event_ids[0]);
+        return {
+          a,
+          b,
+          before,
+          after,
+          change,
+          title: event.title,
+          input: event.input,
+          delta: after - before,
+        };
+      })
+      .sort(
+        (a, b) =>
+          changes[a.change] - changes[b.change] ||
+          Math.abs(b.delta) - Math.abs(a.delta) ||
+          a.title.localeCompare(b.title),
+      );
+  }
+  function jumpToCall(run, id) {
+    const target = run === "0" ? primary : primary.comparison;
+    const index = target.events.findIndex((e) => e.id === id);
+    if (index < 0) return;
+    stop();
+    report = target;
+    cursor = index;
+    filter = "all";
+    query = "";
+    mode = "replay";
+    $("search").value = "";
+    render();
+    $("replay-view").scrollIntoView({ block: "start" });
+    $("replay-view").focus({ preventScroll: true });
+  }
+  function renderRepeated() {
+    const container = $("repeat-list");
+    if (!container) return;
+    const groups = repeatedGroups();
+    if (groups === null) {
+      container.innerHTML = `<p class="repeat-empty">${esc(t("repeatUnavailable"))}</p>`;
+      $("repeat-search").hidden = true;
+      $("repeat-count").textContent = "";
+      return;
+    }
+    $("repeat-search").hidden = false;
+    const matched = groups.filter((g) =>
+      `${g.title}\n${g.input}`.toLowerCase().includes(repeatQuery),
+    );
+    const shown = matched.slice(0, 100);
+    $("repeat-count").textContent = t("repeatCount", {
+      shown: shown.length,
+      total: matched.length,
+    });
+    container.innerHTML =
+      shown
+        .map((g, index) => {
+          const delta = `${g.delta > 0 ? "+" : ""}${number(g.delta)}`;
+          return `<article class="repeat-group" data-repeat-group="${index}">
+        <div class="repeat-label"><span class="repeat-change ${g.change}">${esc(t(g.change))}</span><strong>${esc(g.title)}</strong></div>
+        ${g.input && g.input !== g.title ? `<p class="repeat-input">${esc(g.input.slice(0, 400))}</p>` : ""}
+        <div class="repeat-counts"><div><span>${esc(t("original"))}</span><strong>${number(g.before)}</strong><small>${esc(t("repeatFailures", { count: g.a?.failed ?? 0 }))}</small></div>
+        <div><span>${esc(t("revised"))}</span><strong>${number(g.after)}</strong><small>${esc(t("repeatFailures", { count: g.b?.failed ?? 0 }))}</small></div>
+        <div class="repeat-delta"><span>${esc(t("delta"))}</span><strong>${esc(delta)}</strong></div></div>
+        <details class="repeat-evidence"><summary>${esc(t("repeatEvidence"))}</summary><div class="repeat-source-columns"></div></details></article>`;
+        })
+        .join("") || `<p class="repeat-empty">${esc(t("repeatEmpty"))}</p>`;
+    const indexes = [primary, primary.comparison].map(
+      (data) => new Map(data.events.map((e) => [e.id, e])),
+    );
+    container.querySelectorAll("details").forEach((details, index) => {
+      details.ontoggle = () => {
+        const body = details.querySelector(".repeat-source-columns");
+        if (!details.open || body.childElementCount) return;
+        const g = shown[index];
+        body.innerHTML = [g.a, g.b]
+          .map((group, run) => {
+            const ids = group?.event_ids ?? [],
+              visible = ids.slice(0, 30);
+            return `<section><h4>${esc(t(run ? "revised" : "original"))}</h4>${
+              visible
+                .map((id) => {
+                  const e = indexes[run].get(id);
+                  return `<button class="repeat-source" data-call-run="${run}" data-call-id="${esc(id)}">${esc(t("repeatSource", { line: e.source_line, status: t(e.status) }))}<span aria-hidden="true">↗</span></button>`;
+                })
+                .join("") ||
+              `<p class="repeat-empty">${esc(t("repeatAbsent"))}</p>`
+            }${ids.length > 30 ? `<p class="repeat-limit">${esc(t("repeatSourceLimit", { shown: 30, total: ids.length }))}</p>` : ""}</section>`;
+          })
+          .join("");
+        body.querySelectorAll("[data-call-id]").forEach((button) => {
+          button.onclick = () =>
+            jumpToCall(button.dataset.callRun, button.dataset.callId);
+        });
+      };
+    });
+  }
   function renderCompare() {
     const other = primary.comparison;
-    if (!other) return;
+    if (!other) {
+      $("compare-view").replaceChildren();
+      return;
+    }
     const fields = [
       ["toolCalls", "tool_calls"],
       ["failedCalls", "failed_calls"],
@@ -532,7 +752,7 @@
     const get = (data, key) =>
       key.endsWith("tokens") ? data.summary.usage[key] : data.summary[key];
     $("compare-view").innerHTML =
-      `<h2>${esc(t("compareTitle"))}</h2><p>${esc(primary.synthetic && other.synthetic ? t("compareSample") : t("compareSubtitle"))}</p><table><thead><tr><th>${esc(t("metric"))}</th><th>${esc(name(primary))}</th><th>${esc(name(other))}</th><th>${esc(t("delta"))}</th></tr></thead><tbody>${fields
+      `<h2>${esc(t("compareTitle"))}</h2><p>${esc(primary.synthetic && other.synthetic ? t("compareSample") : t("compareSubtitle"))}</p><section class="repeat-comparison" aria-labelledby="repeat-title"><div class="repeat-heading"><h3 id="repeat-title">${esc(t("repeatTitle"))}</h3><span id="repeat-count" class="count" aria-live="polite"></span></div><p class="repeat-note">${esc(t("repeatNote"))}</p><input type="search" id="repeat-search" value="${esc(repeatQuery)}" placeholder="${esc(t("repeatSearch"))}" aria-label="${esc(t("repeatSearch"))}" autocomplete="off"><div id="repeat-list"></div></section><h3 class="overall-heading">${esc(t("overallTitle"))}</h3><div class="comparison-metrics" role="region" aria-label="${esc(t("overallTitle"))}" tabindex="0"><table><thead><tr><th>${esc(t("metric"))}</th><th>${esc(name(primary))}</th><th>${esc(name(other))}</th><th>${esc(t("delta"))}</th></tr></thead><tbody>${fields
         .map(([label, key]) => {
           const a = get(primary, key),
             b = get(other, key);
@@ -542,19 +762,12 @@
               : `${b - a > 0 ? "+" : ""}${number(b - a)}`;
           return `<tr><td>${esc(t(label))}</td><td>${esc(number(a))}</td><td>${esc(number(b))}</td><td class="delta">${esc(delta)}</td></tr>`;
         })
-        .join("")}</tbody></table><div class="compare-sessions">${[
-        primary,
-        other,
-      ]
-        .map(
-          (data) =>
-            `<article class="compare-session"><h3>${esc(name(data))}</h3><ul>${data.events
-              .filter((e) => e.kind === "tool")
-              .slice(0, 10)
-              .map((e) => `<li>${esc(t(e.status))} · ${esc(e.title)}</li>`)
-              .join("")}</ul></article>`,
-        )
-        .join("")}</div>`;
+        .join("")}</tbody></table></div>`;
+    $("repeat-search").oninput = (event) => {
+      repeatQuery = event.target.value.toLowerCase();
+      renderRepeated();
+    };
+    renderRepeated();
   }
   function render() {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
@@ -682,6 +895,7 @@
       filter = "all";
       query = "";
       mode = "replay";
+      repeatQuery = "";
       $("search").value = "";
       render();
     } catch (error) {

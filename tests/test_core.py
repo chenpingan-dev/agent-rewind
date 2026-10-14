@@ -63,6 +63,79 @@ class ReplayTests(unittest.TestCase):
         self.assertIsNone(report["summary"]["usage"]["output_tokens"])
         self.assertEqual(report["warnings"][0]["code"], "invalid_cached_usage")
 
+    def test_call_groups_include_small_groups_and_only_finished_calls(self):
+        report = analyze(trace(command("a"), command("b", exit_code=1),
+                               command("pending", status="in_progress"),
+                               command("unknown", status="unknown")))
+        grouped = report["call_groups"]
+        self.assertEqual(grouped["scheme"], "exact-tool-input/v1")
+        self.assertEqual(len(grouped["groups"]), 1)
+        group = grouped["groups"][0]
+        self.assertEqual((group["count"], group["failed"]), (2, 1))
+        self.assertEqual(group["event_ids"], ["t0:a", "t0:b"])
+        self.assertNotIn("repeated_call", [f["code"] for f in report["findings"]])
+
+    def test_matching_uses_full_input_before_redaction_and_truncation(self):
+        first = analyze(trace(command(command='fetch --token="secret-one"')))
+        second = analyze(trace(command(command='fetch --token="secret-two"')))
+        self.assertEqual(first["events"][0]["input"], second["events"][0]["input"])
+        self.assertNotEqual(first["call_groups"]["groups"][0]["fingerprint"],
+                            second["call_groups"]["groups"][0]["fingerprint"])
+        self.assertNotIn("secret-one", json.dumps(first))
+        a = analyze(trace(command(command="x" * (MAX_TEXT + 1) + "a")))
+        b = analyze(trace(command(command="x" * (MAX_TEXT + 1) + "b")))
+        self.assertEqual(a["events"][0]["input"], b["events"][0]["input"])
+        self.assertNotEqual(a["call_groups"]["groups"][0]["fingerprint"],
+                            b["call_groups"]["groups"][0]["fingerprint"])
+
+    def test_mcp_identity_includes_server_and_canonical_arguments(self):
+        records = []
+        for item_id, server, args in [("a", "alpha", {"a": 1, "b": 2}),
+                                      ("b", "alpha", {"b": 2, "a": 1}),
+                                      ("c", "beta", {"a": 1, "b": 2})]:
+            records.append({"type": "item.completed", "item": {"id": item_id,
+                            "type": "mcp_tool_call", "server": server, "tool": "lookup",
+                            "arguments": args, "status": "completed"}})
+        groups = analyze(trace(*records))["call_groups"]["groups"]
+        self.assertEqual([g["count"] for g in groups], [2, 1])
+        self.assertNotEqual(groups[0]["fingerprint"], groups[1]["fingerprint"])
+
+    def test_shell_and_search_are_distinct_even_with_same_input(self):
+        report = analyze(trace(command(command="web_search"),
+            {"type": "item.completed", "item": {"id": "search", "type": "web_search",
+             "query": "web_search", "status": "completed"}}))
+        self.assertEqual(len(report["call_groups"]["groups"]), 2)
+
+    def test_mcp_server_tool_pairs_are_not_ambiguous(self):
+        records = [{"type": "item.completed", "item": {"id": str(i), "type": "mcp_tool_call",
+                    "server": server, "tool": tool, "arguments": {}, "status": "completed"}}
+                   for i, (server, tool) in enumerate([("alpha/beta", "lookup"), ("alpha", "beta/lookup")])]
+        report = analyze(trace(*records))
+        self.assertEqual(report["events"][0]["title"], report["events"][1]["title"])
+        self.assertEqual(len(report["call_groups"]["groups"]), 2)
+
+    def test_group_fingerprint_is_stable_across_turns_and_output_changes(self):
+        first = analyze(trace(command(aggregated_output="before", exit_code=1)))
+        second = analyze(trace({"type": "turn.started"},
+                               command("new-id", aggregated_output="after", exit_code=0)))
+        self.assertEqual(first["call_groups"]["groups"][0]["fingerprint"],
+                         second["call_groups"]["groups"][0]["fingerprint"])
+
+    def test_cli_comparison_preserves_both_group_counts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, second = root/"first.jsonl", root/"second.jsonl"
+            first.write_text(trace(*[command(str(i), exit_code=1) for i in range(3)]), encoding="utf-8")
+            second.write_text(trace(command(exit_code=0)), encoding="utf-8")
+            output, data = root/"report.html", root/"report.json"
+            self.assertEqual(main([str(first), "--compare", str(second), "--html", str(output),
+                                   "--json", str(data)]), 0)
+            report = json.loads(data.read_text(encoding="utf-8"))
+            a, b = report["call_groups"]["groups"][0], report["comparison"]["call_groups"]["groups"][0]
+            self.assertEqual((a["count"], b["count"], a["failed"], b["failed"]), (3, 1, 3, 0))
+            self.assertEqual(a["fingerprint"], b["fingerprint"])
+            self.assertIn('id="repeat-list"', output.read_text(encoding="utf-8"))
+
     def test_secret_patterns_and_html_payload_are_not_executable(self):
         for text, secret in [('Authorization: Bearer abcdefg123', 'abcdefg123'),
                              ('password="my secret"', 'my secret'),

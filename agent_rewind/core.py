@@ -185,7 +185,9 @@ def analyze(text: str, title: str = "Session replay") -> dict:
                          output_bytes=len(raw_output.encode("utf-8")))
             if len(redact(raw_output)) > MAX_TEXT:
                 event["truncated"] = True
-            signatures[item_id] = hashlib.sha256((tool_name + "\0" + raw_input).encode()).hexdigest()
+            identity = [_text(item.get("server", "mcp")), tool_name] if item_type == "mcp_tool_call" else tool_name
+            signature = json.dumps([item_type, identity, raw_input], ensure_ascii=False)
+            signatures[item_id] = hashlib.sha256(signature.encode("utf-8")).hexdigest()
         elif item_type == "file_change":
             event["kind"] = "file"
             changes = item.get("changes", [])
@@ -207,8 +209,12 @@ def analyze(text: str, title: str = "Session replay") -> dict:
     tools = [event for event in events if event["kind"] == "tool"]
     groups: dict[str, list[dict]] = defaultdict(list)
     for event in tools:
-        if event["status"] != "in_progress":
+        if event["status"] in ("completed", "failed"):
             groups[signatures[event["id"]]].append(event)
+    call_groups = [{"fingerprint": signature, "count": len(group),
+                    "failed": sum(event["status"] == "failed" for event in group),
+                    "event_ids": [event["id"] for event in group]}
+                   for signature, group in groups.items()]
     findings = []
     for group in groups.values():
         if len(group) >= 3:
@@ -232,7 +238,8 @@ def analyze(text: str, title: str = "Session replay") -> dict:
                "usage": usage, "output_bytes": sum(event.get("output_bytes", 0) for event in tools)}
     return {"schema": "agent-rewind/v1", "title": redact(title)[:160], "source": "codex-exec-jsonl",
             "synthetic": synthetic, "thread_id": redact(thread_id), "events": events,
-            "turns": turns, "summary": summary, "findings": findings, "warnings": warnings}
+            "turns": turns, "summary": summary, "findings": findings, "warnings": warnings,
+            "call_groups": {"scheme": "exact-tool-input/v1", "groups": call_groups}}
 
 
 def render_html(report: dict) -> str:

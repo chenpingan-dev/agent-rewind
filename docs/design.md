@@ -9,6 +9,7 @@ Agent Rewind is a recording player. Its primary interaction is moving between re
 - Use short action labels in both languages; avoid internal project-priority labels and sentence-final punctuation on short Chinese UI labels
 - Preserve readable contrast, keyboard focus, localized control labels and reduced-motion preferences
 - At narrow widths, stack input/result and keep horizontal scrolling inside the session track
+- In comparison, keep repeated-input rows readable with 14–15px primary text, explicit counts and expandable source links; contain metric-table scrolling in its own region
 
 The interface must remain different from Patch Orbit's map workspace. Do not copy its package sidebar or turn the player into a generic admin dashboard.
 
